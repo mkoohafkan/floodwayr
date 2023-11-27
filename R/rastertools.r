@@ -122,8 +122,8 @@ classify_surcharge = function(bfe, floodway_wse) {
 
   craster = classify(round(surcharge, 1), c(-Inf, -1, 0, 1, Inf))
   levels(craster) = data.frame(ID = 0:3,
-    Value = c("\U0394 BFE \U003C -1", "-1 \U2264 \U0394 BFE \U003C 0",
-      "0 \U2264 \U0394 BFE \U003C 1", "\U0394 BFE \U003E 1"))
+    Value = c("Δ BFE < -1", "-1 ≤ Δ BFE < 0",
+      "0 ≤ Δ BFE < 1", "Δ BFE > 1"))
   coltab(craster) = data.frame(value = seq(0L, 3L),
     color = c("red", "yellow", "green", "red"))
   craster
@@ -140,8 +140,11 @@ classify_surcharge = function(bfe, floodway_wse) {
 #' @importFrom terra freq
 #'@keywords internal
 count_surcharge_exceedance = function(raster) {
-  fq = freq(raster)
+  keep_nms = c("Δ BFE < -1", "-1 ≤ Δ BFE < 0",
+    "Δ BFE > 1")
+  fq = freq(raster, bylayer = FALSE)
   res = fq$count
   names(res) = fq$value
-  res[names(res) != "0 \U2264 \U0394 BFE \U003C 1"]
+  res[setdiff(keep_nms, names(res))] = 0
+  res[keep_nms]
 }
