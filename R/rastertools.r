@@ -113,6 +113,7 @@ evaluate_profiles = function(bfe, floodway_wse, floodway_dv, profiles,
 #' @return A classified `SpatRaster` object.
 #'
 #' @importFrom terra classify `coltab<-`
+#' @importFrom utf8 utf8_normalize
 #' @export
 classify_surcharge = function(bfe, floodway_wse) {
 
@@ -122,12 +123,20 @@ classify_surcharge = function(bfe, floodway_wse) {
 
   craster = classify(round(surcharge, 1), c(-Inf, -1, 0, 1, Inf))
   levels(craster) = data.frame(ID = 0:3,
-    Value = c("Δ BFE < -1", "-1 ≤ Δ BFE < 0",
-      "0 ≤ Δ BFE < 1", "Δ BFE > 1"))
+    Value = utf8_normalize(c("\U0394 BFE \U003C -1",
+        "-1 \U2264 \U0394 BFE \U003C 0",
+        "0 \U2264 \U0394 BFE \U003C 1",
+        "\U0394 BFE \U003E 1"))
+  )
   coltab(craster) = data.frame(value = seq(0L, 3L),
     color = c("red", "yellow", "green", "red"))
   craster
 }
+
+
+
+
+
 
 
 #' Count Cells By Surcharge Exceedance
@@ -138,13 +147,16 @@ classify_surcharge = function(bfe, floodway_wse) {
 #' @return A named vector.
 #'
 #' @importFrom terra freq
+#' @importFrom utf8 utf8_normalize
 #' @export
 count_surcharge_exceedance = function(raster) {
-  keep_nms = c("Δ BFE < -1", "-1 ≤ Δ BFE < 0",
-    "Δ BFE > 1")
+  keep_nms = utf8_normalize(c("\U0394 BFE \U003C -1",
+      "-1 \U2264 \U0394 BFE \U003C 0",
+      "\U0394 BFE \U003E 1"))
   fq = freq(raster, bylayer = FALSE)
   res = fq$count
-  names(res) = fq$value
+  # terra is doing something here, need to renormalize utf8
+  names(res) = utf8_normalize(fq$value)
   res[setdiff(keep_nms, names(res))] = 0
   res[keep_nms]
 }

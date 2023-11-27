@@ -79,6 +79,7 @@ ui = function() {
 #' @importFrom shinydashboard infoBox
 #' @importFrom leaflet renderLeaflet
 #' @importFrom terra `coltab<-` classify project
+#' @importFrom utf8 utf8_normalize
 server = function(input, output, session) {
   # inputs
   bfe = reactiveVal(NULL)
@@ -156,23 +157,29 @@ server = function(input, output, session) {
         values(result_lines)[c("Name", "Value")]
       }, striped = TRUE, digits = 2)
       output$surchargeabove = renderUI(
-        infoBox(HTML("\U0394 BFE \U003E 1"),
-          paste(excess_counts["Δ BFE > 1"], "cells"),
-          color = ifelse(excess_counts["Δ BFE > 1"] > 0,
+        infoBox("\U0394 BFE \U003E 1",
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1")]], "cells"),
+          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1")]] > 0,
+            "remove", "ok"), lib = "glyphicon"),
+          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1")]] > 0,
             "red", "aqua"),
           width = 12L)
       )
       output$surchargebelow = renderUI(
         infoBox("\U0394 BFE \U003C -1",
-          paste(excess_counts["Δ BFE < -1"], "cells"),
-          color = ifelse(excess_counts["Δ BFE < -1"] > 0,
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -1")]], "cells"),
+          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -1")]] > 0,
             "red", "aqua"),
+          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -1")]] > 0,
+            "remove", "ok"), lib = "glyphicon"),
           width = 12L)
       )
       output$surchargenearbelow = renderUI(
         infoBox("-1 \U2264 \U0394 BFE \U003C 0",
-          paste(excess_counts["-1 ≤ Δ BFE < 0"], "cells"),
-          color = ifelse(excess_counts["-1 ≤ Δ BFE < 0"] > 0,
+          paste(excess_counts[[utf8_normalize("-1 \U2264 \U0394 BFE \U003C 0")]], "cells"),
+          icon = icon(ifelse(excess_counts[[utf8_normalize("-1 \U2264 \U0394 BFE \U003C 0")]] > 0,
+            "warning-sign" , "ok"), lib = "glyphicon"),
+          color = ifelse(excess_counts[[utf8_normalize("-1 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "yellow", "aqua"),
           width = 12L)
       )

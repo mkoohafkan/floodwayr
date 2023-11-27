@@ -13,4 +13,5 @@ Imports:
     leaflet,
     shiny,
     shinydashboard,
-    terra
+    terra,
+    utf8
