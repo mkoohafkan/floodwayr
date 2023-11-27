@@ -4,8 +4,18 @@
 \alias{substitute_filename}
 \title{Substitute Filename}
 \usage{
-substitute_filename(path, newname)
+substitute_filename(path, name_template)
+}
+\arguments{
+\item{path}{A vector of filepaths. Assumes each entry has a different extension.}
+
+\item{name_template}{The filename (without extension) to use as the new base name
+for each file.}
+}
+\value{
+The updated vector of file paths.
 }
 \description{
-Substitute Filename
+Substitute filenames for loading a multi-file object such as shapefiles.
 }
+\keyword{internal}

@@ -64,5 +64,5 @@ eval_lines = load_shape_into_memory("test/mckay_creek/Features/Profile Lines Ext
   project(crs(bfe))
 
 excess_surcharge = classify_surcharge(bfe, floodway_elev)
-
+excess_counts = count_surcharge_exceedance(excess_surcharge)
 result_profiles = evaluate_profiles(bfe, floodway_elev, floodway_dv, eval_lines)

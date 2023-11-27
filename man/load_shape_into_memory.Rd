@@ -19,4 +19,3 @@ Load a vector shape from a file.
 If \code{shape} is already a \code{SpatVector} object,
 the function simply returns the object.
 }
-\keyword{internal}

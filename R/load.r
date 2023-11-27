@@ -7,7 +7,7 @@
 #' @return A `SpatRaster` object.
 #'
 #' @importFrom terra rast crop
-#' @keywords internal
+#' @export
 load_raster_into_memory = function(raster, clip = NULL) {
   if (!inherits(raster, "SpatRaster")) {
     raster = rast(raster)
@@ -30,7 +30,7 @@ load_raster_into_memory = function(raster, clip = NULL) {
 #'   the function simply returns the object.
 #'
 #' @importFrom terra vect
-#' @keywords internal
+#' @export
 load_shape_into_memory = function(shape) {
   if (inherits(shape, "SpatVector")) {
     return(shape)
@@ -40,7 +40,15 @@ load_shape_into_memory = function(shape) {
 }
 
 
+#' Get Raster Extent
+#'
+#' Get the extent from a `SpatRaster` object.
+#'
+#' @inheritParams load_raster_into_memory
+#' @return A `SpatExtent` object.
+#'
 #' @importFrom terra ext
+#' @export
 get_raster_extent = function(raster) {
   ext(load_raster_into_memory(raster))
 }

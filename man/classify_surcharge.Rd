@@ -12,4 +12,3 @@ A classified \code{SpatRaster} object.
 \description{
 Classify surcharge according to FEMA guidance.
 }
-\keyword{internal}

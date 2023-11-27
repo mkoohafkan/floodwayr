@@ -1,7 +1,16 @@
 #' Substitute Filename
-substitute_filename = function(path, newname) {
+#'
+#' Substitute filenames for loading a multi-file object such as shapefiles.
+#'
+#' @param path A vector of filepaths. Assumes each entry has a different extension.
+#' @param name_template The filename (without extension) to use as the new base name
+#'   for each file.
+#' @return The updated vector of file paths.
+#'
+#' @keywords internal
+substitute_filename = function(path, name_template) {
   file.path(dirname(path), gsub("(.+)\\.(.+)$",
-      sprintf("%s.\\2", newname), basename(path)))
+      sprintf("%s.\\2", name_template), basename(path)))
 }
 
 
@@ -66,7 +75,7 @@ ui = function() {
 
 
 #' @importFrom shiny reactiveVal observe bindCache bindEvent
-#' withProgress incProgress outputOptions renderUI HTML
+#' withProgress incProgress outputOptions renderUI renderTable
 #' @importFrom shinydashboard infoBox
 #' @importFrom leaflet renderLeaflet
 #' @importFrom terra `coltab<-` classify project
@@ -173,7 +182,12 @@ server = function(input, output, session) {
 
 }
 
+#' Run App
+#'
+#' Run The Floodway Evaluation app
+#'
 #' @importFrom shiny shinyApp shinyOptions
+#' @export
 run_app = function() {
   shinyApp(ui(), server)
 }

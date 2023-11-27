@@ -12,4 +12,3 @@ A named vector.
 \description{
 Count the number of raster cells that exceed FEMA guidance.
 }
-\keyword{internal}

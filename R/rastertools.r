@@ -67,7 +67,7 @@ calculate_raster_product = function(raster1, raster2) {
 #' @return A dataframe.
 #'
 #' @importFrom terra project crs values `values<-`
-#' @keywords internal
+#' @export
 evaluate_profiles = function(bfe, floodway_wse, floodway_dv, profiles,
   id = "Name") {
 
@@ -113,7 +113,7 @@ evaluate_profiles = function(bfe, floodway_wse, floodway_dv, profiles,
 #' @return A classified `SpatRaster` object.
 #'
 #' @importFrom terra classify `coltab<-`
-#' @keywords internal
+#' @export
 classify_surcharge = function(bfe, floodway_wse) {
 
   bfe = load_raster_into_memory(bfe)
@@ -138,7 +138,7 @@ classify_surcharge = function(bfe, floodway_wse) {
 #' @return A named vector.
 #'
 #' @importFrom terra freq
-#'@keywords internal
+#' @export
 count_surcharge_exceedance = function(raster) {
   keep_nms = c("Δ BFE < -1", "-1 ≤ Δ BFE < 0",
     "Δ BFE > 1")

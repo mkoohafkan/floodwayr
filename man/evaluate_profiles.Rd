@@ -21,4 +21,3 @@ A dataframe.
 \description{
 Evaluate profiles according to FEMA methodology.
 }
-\keyword{internal}

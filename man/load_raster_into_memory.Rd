@@ -17,4 +17,3 @@ A \code{SpatRaster} object.
 \description{
 Load a raster from a file.
 }
-\keyword{internal}

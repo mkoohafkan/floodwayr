@@ -1,3 +1,13 @@
+#' Compute Weighted Averages
+#'
+#' Computed weighted averages from two tables.
+#'
+#' @param numerator The table to use as the numerator.
+#' @param denominator The table to use as the denominator.
+#' @param id The field name to group by.
+#' @return A data frame.
+#'
+#' @keywords internal
 compute_weighted_averages = function(numerator, denominator, id) {
 
   numerator_groups = split(numerator, numerator[[id]])
