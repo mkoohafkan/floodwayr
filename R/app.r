@@ -49,10 +49,9 @@ ui = function() {
         column(3L,
           verticalLayout(
             tableOutput("evalresults"),
-            fixedRow(
-              uiOutput("surchargeabove"),
-              uiOutput("surchargebelow"),
-            )
+            uiOutput("surchargeabove"),
+            uiOutput("surchargebelow"),
+            uiOutput("surchargenearbelow")
           )
         ),
         width = 12L,
@@ -67,8 +66,8 @@ ui = function() {
 
 
 #' @importFrom shiny reactiveVal observe bindCache bindEvent
-#' withProgress incProgress outputOptions renderUI
-#' @importFrom shinydashboard valueBox
+#' withProgress incProgress outputOptions renderUI HTML
+#' @importFrom shinydashboard infoBox
 #' @importFrom leaflet renderLeaflet
 #' @importFrom terra `coltab<-` classify project
 server = function(input, output, session) {
@@ -116,45 +115,26 @@ server = function(input, output, session) {
     # calculuate outputs
     withProgress(message = "Calculating...", value = 0, {
       # surcharge
-      surcharge(
-        calculate_raster_difference(floodway_wse(), bfe())
-      )
-      excess_surcharge(
-        classify_surcharge(surcharge())
-      )
-      
-      excess_count = sum(values(surcharge()) > 0, na.rm = TRUE)
-      under_count = sum(values(excess_surcharge()) < 0, na.rm = TRUE)
+      surcharge = calculate_raster_difference(floodway_wse(), bfe())
+      excess_surcharge = classify_surcharge(bfe(), floodway_wse())
+      excess_counts = count_surcharge_exceedance(excess_surcharge)
+      incProgress(0.25)
 
-      incProgress(0.25)
-      # surcharge * unit discharge (numerator)
-      dv_x_surcharge = calculate_raster_product(surcharge(),
-        floodway_dv())
-      incProgress(0.25)
-      # extraction
-      dv_x_surcharge_extract = extract_cells_by_shape(dv_x_surcharge,
-        eval_lines(), id = "Name")
-      floodway_dv_extract = extract_cells_by_shape(floodway_dv(),
-        eval_lines(), id = "Name")
-      incProgress(0.25)
-      weighted_averages = compute_weighted_averages(dv_x_surcharge_extract,
-        floodway_dv_extract, "Name")
-      incProgress(0.25)
+      result_lines = evaluate_profiles(bfe(), floodway_wse(),
+        floodway_dv(), eval_lines())
+      incProgress(0.75)
     })
-    result_lines = isolate(eval_lines())
-    result_lines$Value = round(weighted_averages$Value[match(weighted_averages$Name, result_lines$Name)], 2)
-    result_lines$color = ifelse(result_lines$Value > 1.0 | result_lines$Value < 0.0, "red", "green")
     # mapping
     withProgress(message = "Mapping Results...", value = 0, {
       pr = c(
         project(bfe(), "EPSG:4326", threads = TRUE),
         project(floodway_wse(), "EPSG:4326", threads = TRUE),
         project(floodway_dv(), "EPSG:4326", threads = TRUE),
-        project(surcharge(), "EPSG:4326", threads = TRUE),
-        project(excess_surcharge(), "EPSG:4326", "near", threads = TRUE)
+        project(surcharge, "EPSG:4326", threads = TRUE),
+        project(excess_surcharge, "EPSG:4326", "near", threads = TRUE)
       )
-      pr = c(bfe(), floodway_wse(), floodway_dv(), surcharge(),
-        excess_surcharge())
+      pr = c(bfe(), floodway_wse(), floodway_dv(), surcharge,
+        excess_surcharge)
       names(pr) = c("Base Flood Elevation", "Floodway WSE",
         "Floodway Unit Discharge", "Surcharge", "Surcharge Violation")
       pl = project(result_lines, "EPSG:4326")
@@ -167,10 +147,25 @@ server = function(input, output, session) {
         values(result_lines)[c("Name", "Value")]
       }, striped = TRUE, digits = 2)
       output$surchargeabove = renderUI(
-        valueBox(excess_count, "# of cells with surcharge > 1.0")
+        infoBox(HTML("\U0394 BFE \U003E 1"),
+          paste(excess_counts["Δ BFE > 1"], "cells"),
+          color = ifelse(excess_counts["Δ BFE > 1"] > 0,
+            "red", "aqua"),
+          width = 12L)
       )
       output$surchargebelow = renderUI(
-        valueBox(under_count, "# of cells with surcharge < 0.0")
+        infoBox("\U0394 BFE \U003C -1",
+          paste(excess_counts["Δ BFE < -1"], "cells"),
+          color = ifelse(excess_counts["Δ BFE < -1"] > 0,
+            "red", "aqua"),
+          width = 12L)
+      )
+      output$surchargenearbelow = renderUI(
+        infoBox("-1 \U2264 \U0394 BFE \U003C 0",
+          paste(excess_counts["-1 ≤ Δ BFE < 0"], "cells"),
+          color = ifelse(excess_counts["-1 ≤ Δ BFE < 0"] > 0,
+            "yellow", "aqua"),
+          width = 12L)
       )
     })
   }) |>
