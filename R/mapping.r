@@ -18,7 +18,7 @@ map_raster = function(rastr = NULL, shp = NULL) {
 
   if (!is.null(rastr)) {
     mp = plet(rastr, seq_len(nlyr(rastr)),
-      legend = "bottomleft")
+      legend = "bottomleft", maxcell = 1e38)
   } else {
     mp = plet()
   }
