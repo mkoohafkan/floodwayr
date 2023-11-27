@@ -121,7 +121,8 @@ classify_surcharge = function(bfe, floodway_wse) {
   floodway_wse = load_raster_into_memory(floodway_wse)
   surcharge = calculate_raster_difference(floodway_wse, bfe)
 
-  craster = classify(round(surcharge, 1), c(-Inf, -0.5, 0, 1.5, Inf))
+  craster = classify(round(surcharge, 1), c(-Inf, -0.51, 0, 1.5, Inf),
+    others = NA_integer_)
   levels(craster) = data.frame(ID = 0:3,
     Value = utf8_normalize(c("\U0394 BFE \U003C -0.5",
         "-0.5 \U2264 \U0394 BFE \U003C 0",
