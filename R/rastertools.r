@@ -121,12 +121,12 @@ classify_surcharge = function(bfe, floodway_wse) {
   floodway_wse = load_raster_into_memory(floodway_wse)
   surcharge = calculate_raster_difference(floodway_wse, bfe)
 
-  craster = classify(round(surcharge, 1), c(-Inf, -1, 0, 1, Inf))
+  craster = classify(round(surcharge, 1), c(-Inf, -0.5, 0, 1.5, Inf))
   levels(craster) = data.frame(ID = 0:3,
-    Value = utf8_normalize(c("\U0394 BFE \U003C -1",
-        "-1 \U2264 \U0394 BFE \U003C 0",
-        "0 \U2264 \U0394 BFE \U003C 1",
-        "\U0394 BFE \U003E 1"))
+    Value = utf8_normalize(c("\U0394 BFE \U003C -0.5",
+        "-0.5 \U2264 \U0394 BFE \U003C 0",
+        "0 \U2264 \U0394 BFE \U003C 1.5",
+        "\U0394 BFE \U003E 1.5"))
   )
   coltab(craster) = data.frame(value = seq(0L, 3L),
     color = c("red", "yellow", "green", "red"))
@@ -150,9 +150,9 @@ classify_surcharge = function(bfe, floodway_wse) {
 #' @importFrom utf8 utf8_normalize
 #' @export
 count_surcharge_exceedance = function(raster) {
-  keep_nms = utf8_normalize(c("\U0394 BFE \U003C -1",
-      "-1 \U2264 \U0394 BFE \U003C 0",
-      "\U0394 BFE \U003E 1"))
+  keep_nms = utf8_normalize(c("\U0394 BFE \U003C -0.5",
+      "-0.5 \U2264 \U0394 BFE \U003C 0",
+      "\U0394 BFE \U003E 1.5"))
   fq = freq(raster, bylayer = FALSE)
   res = fq$count
   # terra is doing something here, need to renormalize utf8

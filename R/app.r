@@ -157,29 +157,29 @@ server = function(input, output, session) {
         values(result_lines)[c("Name", "Value")]
       }, striped = TRUE, digits = 2)
       output$surchargeabove = renderUI(
-        infoBox("\U0394 BFE \U003E 1",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1")]], "cells"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1")]] > 0,
+        infoBox("\U0394 BFE \U003E 1.5",
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]], "cells"),
+          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
-          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1")]] > 0,
+          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "red", "aqua"),
           width = 12L)
       )
       output$surchargebelow = renderUI(
-        infoBox("\U0394 BFE \U003C -1",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -1")]], "cells"),
-          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -1")]] > 0,
+        infoBox("\U0394 BFE \U003C -0.5",
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]], "cells"),
+          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "red", "aqua"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -1")]] > 0,
+          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
           width = 12L)
       )
       output$surchargenearbelow = renderUI(
-        infoBox("-1 \U2264 \U0394 BFE \U003C 0",
-          paste(excess_counts[[utf8_normalize("-1 \U2264 \U0394 BFE \U003C 0")]], "cells"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("-1 \U2264 \U0394 BFE \U003C 0")]] > 0,
+        infoBox("-0.5 \U2264 \U0394 BFE \U003C 0",
+          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]], "cells"),
+          icon = icon(ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "warning-sign" , "ok"), lib = "glyphicon"),
-          color = ifelse(excess_counts[[utf8_normalize("-1 \U2264 \U0394 BFE \U003C 0")]] > 0,
+          color = ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "yellow", "aqua"),
           width = 12L)
       )
