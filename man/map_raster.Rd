@@ -4,7 +4,7 @@
 \alias{map_raster}
 \title{Raster Leaflet Map}
 \usage{
-map_raster(rastr = NULL, shp = NULL)
+map_raster(rastr = NULL, lines = NULL, mesh = NULL)
 }
 \arguments{
 \item{raster}{A \code{SpatRaster} object.}

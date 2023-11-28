@@ -6,9 +6,10 @@
 #' @return A `leaflet` object.
 #'
 #' @importFrom terra plet nlyr crs
-#' @importFrom leaflet addPolylines addLayersControl layersControlOptions
+#' @importFrom leaflet addPolylines addPolygons
+#'   addLayersControl layersControlOptions
 #' @keywords internal
-map_raster = function(rastr = NULL, shp = NULL) {
+map_raster = function(rastr = NULL, lines = NULL, mesh = NULL) {
 
   # TODO
   # leaflet and plet only work with web mercator... but reprojecting will change the results
@@ -22,14 +23,19 @@ map_raster = function(rastr = NULL, shp = NULL) {
   } else {
     mp = plet()
   }
-  if (!is.null(shp)) {
+  if (!is.null(lines)) {
     mp = mp |>
-      addPolylines(data = shp, opacity = 1,
-        color = values(shp)$color, group = "Evaluation Lines",
-        label = values(shp)[["Name"]]) |>
-      addLayersControl(baseGroups = names(rastr),
-        overlayGroups = c("Evaluation Lines"),
-        options = layersControlOptions(collapsed = FALSE))
+      addPolylines(data = lines, opacity = 1,
+        color = values(lines)$color, group = "Evaluation Lines",
+        label = values(lines)[["Name"]])
   }
-  mp
+  if (!is.null(mesh)) {
+    mp = mp |>
+      addPolygons(data = mesh, opacity = 1, group = "Model Mesh",
+        color = "black", weight = 1, smoothFactor = 0, fill = FALSE)
+  }
+  mp |>
+    addLayersControl(baseGroups = names(rastr),
+      overlayGroups = c("Evaluation Lines", "Model Mesh"),
+      options = layersControlOptions(collapsed = FALSE))
 }

@@ -2,20 +2,43 @@
 #'
 #' Substitute filenames for loading a multi-file object such as shapefiles.
 #'
-#' @param path A vector of filepaths. Assumes each entry has a different extension.
-#' @param name_template The filename (without extension) to use as the new base name
-#'   for each file.
+#' @param paths A vector of filepaths. Each entry must have a
+#'   differentfile  extension.
+#' @param name_template The filename (without extension) to use as
+#'   the new base name for each file.
 #' @return The updated vector of file paths.
 #'
 #' @keywords internal
-substitute_filename = function(path, name_template) {
-  file.path(dirname(path), gsub("(.+)\\.(.+)$",
-      sprintf("%s.\\2", name_template), basename(path)))
+substitute_filename = function(paths, name_template) {
+  file.path(dirname(paths), gsub("(.+)\\.(.+)$",
+      sprintf("%s.\\2", name_template), basename(paths)))
 }
 
 
+#' Load Shapefile
+#'
+#' Load a shapefile from a set of (misnamed) files.
+#'
+#' @inheritParams substitute_filename
+#' @return A `SpatVector` object.
+#'
+#' @keywords internal
+load_shapefile = function(paths) {
+  template = basename(tempfile())
+  new_paths = substitute_filename(paths, template)
+  if (any(duplicated(basename(new_paths)))) {
+    stop("Duplicate file extensions supplied: ",
+      paste(names(which(table(new_paths) > 1L)), collapse = ", "))
+  }
+  if (!all(file.copy(paths, new_paths))) {
+    stop("Failed to rename shapefile components")
+  }
+  shp_name = new_paths[grepl("\\.shp$", new_paths)]
+  load_shape_into_memory(shp_name)
+}
+
 #' @importFrom shiny fixedRow verticalLayout fileInput actionButton tabPanel
-#'   column icon tabsetPanel tableOutput uiOutput
+#'   column icon tabsetPanel tableOutput uiOutput div hr
 #' @importFrom shinydashboard dashboardPage dashboardHeader
 #'   dashboardSidebar dashboardBody box
 #' @importFrom leaflet leafletOutput
@@ -23,37 +46,45 @@ substitute_filename = function(path, name_template) {
 ui = function() {
   dashboardPage(
     dashboardHeader(title = "Floodway Evaluation Tool"),
-    dashboardSidebar(disable = TRUE),
-    dashboardBody(
-      box(id = "inputbox",
-        fixedRow(
-          column(4L,
-            fileInput("bfe", "Base Flood Elevation", multiple = FALSE,
-              accept = "image/*"),
-            fileInput("evaluation", "Evaluation Lines",
-              multiple = TRUE, accept = c(".shp", ".dbf", ".sbn", ".sbx",
-                ".shx", ".prj", ".cpg")),
-          ),
-          column(4L,
-            fileInput("floodwaywse", "Floodway WSE", multiple = FALSE,
-              accept = "image/*"),
-            fileInput("floodwaydv",
-              "Floodway Unit Discharge (Depth x Velocity)",
-              multiple = FALSE, accept = "image/*")
-          ),
-          column(4L,
-            fileInput("calcextent", "Analysis Extent (optional)",
-              multiple = FALSE, accept = "image/*"),
-            actionButton("compute", "Compute",
-              style = 'margin-top:25px',
-              icon = icon("flash", lib = "glyphicon"))
-          )
-        ),
-        width = 12L
+    dashboardSidebar(
+      div(
+        fileInput("bfe", "Base Flood Elevation", multiple = FALSE,
+          accept = "image/*"),
+        fileInput("calcextent", "Analysis Extent (optional)",
+          multiple = FALSE, accept = "image/*")
       ),
+      hr(),
+      div(
+        fileInput("floodwaywse", "Floodway WSE", multiple = FALSE,
+          accept = "image/*"),
+        fileInput("floodwaydv",
+          "Floodway Unit Discharge (Depth x Velocity)",
+          multiple = FALSE, accept = "image/*")
+      ),
+      hr(),
+      div(
+        fileInput("evaluation", "Evaluation Lines",
+          multiple = TRUE, accept = c(".shp", ".dbf", ".sbn", ".sbx",
+            ".shx", ".prj", ".cpg")),
+        fileInput("mesh", "Model Mesh",
+          multiple = TRUE, accept = c(".shp", ".dbf", ".sbn", ".sbx",
+            ".shx", ".prj", ".cpg"))
+      ),
+      div(
+        column(6L,
+          actionButton("compute", "Compute",
+            icon = icon("flash", lib = "glyphicon"))
+        ),
+        column(6L,
+          actionButton("quit", "Quit",
+            icon = icon("off", lib = "glyphicon"))
+        )
+      )
+    ),
+    dashboardBody(
       box(id = "outputbox",
         column(9L,
-          leafletOutput("resultsmap", height = 880)
+          leafletOutput("resultsmap", height = "85vh")
         ),
         column(3L,
           verticalLayout(
@@ -64,7 +95,7 @@ ui = function() {
           )
         ),
         width = 12L,
-        height = 900
+        height = "90vh"
       )
     )
   )
@@ -86,6 +117,7 @@ server = function(input, output, session) {
   floodway_wse = reactiveVal(NULL)
   floodway_dv = reactiveVal(NULL)
   eval_lines = reactiveVal(NULL)
+  model_mesh = reactiveVal(NULL)
 
   # outputs
   surcharge = reactiveVal(NULL)
@@ -111,14 +143,8 @@ server = function(input, output, session) {
           input$calcextent$datapath)
       )
       incProgress(0.25)
-      template_name = basename(tempfile())
-      newnames = substitute_filename(input$evaluation$datapath,
-        template_name)
-      file.copy(input$evaluation$datapath, newnames)
-      shp_name = newnames[grepl("\\.shp$", newnames)]
-      eval_lines(
-        load_shape_into_memory(shp_name)
-      )
+      eval_lines(load_shapefile(input$evaluation$datapath))
+      model_mesh(load_shapefile(input$mesh$datapath))
       incProgress(0.25)
     })
 
@@ -148,9 +174,10 @@ server = function(input, output, session) {
       names(pr) = c("Base Flood Elevation", "Floodway WSE",
         "Floodway Unit Discharge", "Surcharge", "Surcharge Violation")
       pl = project(result_lines, "EPSG:4326")
+      pm = project(model_mesh(), "EPSG:4326")
       incProgress(0.5)
       output$resultsmap = renderLeaflet({
-        map_raster(pr, pl)
+        map_raster(pr, pl, pm)
       })
       incProgress(0.4)
       output$evalresults = renderTable({

@@ -4,13 +4,14 @@
 \alias{substitute_filename}
 \title{Substitute Filename}
 \usage{
-substitute_filename(path, name_template)
+substitute_filename(paths, name_template)
 }
 \arguments{
-\item{path}{A vector of filepaths. Assumes each entry has a different extension.}
+\item{paths}{A vector of filepaths. Each entry must have a
+differentfile  extension.}
 
-\item{name_template}{The filename (without extension) to use as the new base name
-for each file.}
+\item{name_template}{The filename (without extension) to use as
+the new base name for each file.}
 }
 \value{
 The updated vector of file paths.
