@@ -6,7 +6,7 @@
 #' @return A `leaflet` object.
 #'
 #' @importFrom terra plet nlyr crs
-#' @importFrom leaflet addPolylines addPolygons
+#' @importFrom leaflet addPolylines addPolygons hideGroup
 #'   addLayersControl layersControlOptions
 #' @keywords internal
 map_raster = function(rastr = NULL, lines = NULL, mesh = NULL) {
@@ -32,7 +32,8 @@ map_raster = function(rastr = NULL, lines = NULL, mesh = NULL) {
   if (!is.null(mesh)) {
     mp = mp |>
       addPolygons(data = mesh, opacity = 1, group = "Model Mesh",
-        color = "black", weight = 1, smoothFactor = 0, fill = FALSE)
+        color = "black", weight = 1, smoothFactor = 0, fill = FALSE) |>
+      hideGroup("Model Mesh")
   }
   mp |>
     addLayersControl(baseGroups = names(rastr),
