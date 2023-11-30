@@ -11,6 +11,7 @@
 load_raster_into_memory = function(raster, clip = NULL) {
   if (!inherits(raster, "SpatRaster")) {
     raster = rast(raster)
+    names(raster) = make.names(names(raster))
   }
   if (!is.null(clip)) {
     raster = crop(raster, get_raster_extent(clip))
@@ -23,7 +24,7 @@ load_raster_into_memory = function(raster, clip = NULL) {
 #'
 #' Load a vector shape from a file.
 #'
-#' @param shape A file path to a vector.
+#' @param shape A `SpatVector` object or file path to a vector layer.
 #' @return A `SpatVector` object.
 #'
 #' @details If `shape` is already a `SpatVector` object,
@@ -32,11 +33,11 @@ load_raster_into_memory = function(raster, clip = NULL) {
 #' @importFrom terra vect
 #' @export
 load_shape_into_memory = function(shape) {
-  if (inherits(shape, "SpatVector")) {
-    return(shape)
-  } else {
-    return(vect(shape))
+  if (!inherits(shape, "SpatVector")) {
+    shape = vect(shape)
+    names(shape) = make.names(names(shape))
   }
+  return(shape)
 }
 
 
