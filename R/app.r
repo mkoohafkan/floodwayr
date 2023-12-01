@@ -42,6 +42,7 @@ load_shapefile = function(paths) {
 #' @importFrom shinydashboard dashboardPage dashboardHeader
 #'   dashboardSidebar dashboardBody box
 #' @importFrom leaflet leafletOutput
+#' @importFrom DT dataTableOutput
 #' @keywords internal
 ui = function() {
   dashboardPage(
@@ -50,15 +51,10 @@ ui = function() {
       div(
         fileInput("bfe", "Base Flood Elevation", multiple = FALSE,
           accept = "image/*"),
-        fileInput("calcextent", "Analysis Extent (optional)",
-          multiple = FALSE, accept = "image/*")
-      ),
-      hr(),
-      div(
         fileInput("floodwaywse", "Floodway WSE", multiple = FALSE,
           accept = "image/*"),
         fileInput("floodwaydv",
-          "Floodway Unit Discharge (Depth x Velocity)",
+          "Floodway Depth x Velocity",
           multiple = FALSE, accept = "image/*")
       ),
       hr(),
@@ -69,6 +65,11 @@ ui = function() {
         fileInput("mesh", "Model Mesh",
           multiple = TRUE, accept = c(".shp", ".dbf", ".sbn", ".sbx",
             ".shx", ".prj", ".cpg"))
+      ),
+      hr(),
+      div(
+        fileInput("calcextent", "Analysis Extent (optional)",
+          multiple = FALSE, accept = "image/*")
       ),
       div(
         column(6L,
@@ -88,7 +89,7 @@ ui = function() {
         ),
         column(3L,
           verticalLayout(
-            tableOutput("evalresults"),
+            dataTableOutput("evalresults"),
             uiOutput("surchargeabove"),
             uiOutput("surchargebelow"),
             uiOutput("surchargenearbelow")
@@ -102,15 +103,14 @@ ui = function() {
 }
 
 
-
-
-
 #' @importFrom shiny reactiveVal observe bindCache bindEvent
-#' withProgress incProgress outputOptions renderUI renderTable
+#'   withProgress incProgress outputOptions renderUI renderTable
+#'   showNotification
 #' @importFrom shinydashboard infoBox
 #' @importFrom leaflet renderLeaflet
 #' @importFrom terra `coltab<-` classify project
 #' @importFrom utf8 utf8_normalize
+#' @importFrom DT renderDataTable datatable formatStyle styleEqual
 server = function(input, output, session) {
   # inputs
   bfe = reactiveVal(NULL)
@@ -124,6 +124,7 @@ server = function(input, output, session) {
   excess_surcharge = reactiveVal(NULL)
   floodway_dv_extract = reactiveVal(NULL)
   eval_results = reactiveVal(NULL)
+  results_map = reactiveVal(NULL)
 
   observe({
     # load input data
@@ -148,44 +149,38 @@ server = function(input, output, session) {
       incProgress(0.25)
     })
 
-    # calculuate outputs
+    # calculate outputs
     withProgress(message = "Calculating...", value = 0, {
       # surcharge
-      surcharge = calculate_raster_difference(floodway_wse(), bfe())
-      excess_surcharge = classify_surcharge(bfe(), floodway_wse())
-      excess_counts = count_surcharge_exceedance(excess_surcharge)
-      incProgress(0.25)
+      surcharge = calculate_surcharge(bfe(), floodway_wse(), model_mesh())
+      excess_counts = count_surcharge_exceedance(surcharge[["Class"]])
+
+      incProgress(0.5)
 
       result_lines = evaluate_profiles(bfe(), floodway_wse(),
-        floodway_dv(), eval_lines())
-      incProgress(0.75)
+        floodway_dv(), eval_lines(), model_mesh())
+      incProgress(0.5)
     })
     # mapping
-    withProgress(message = "Mapping Results...", value = 0, {
-      pr = c(
-        project(bfe(), "EPSG:4326", threads = TRUE),
-        project(floodway_wse(), "EPSG:4326", threads = TRUE),
-        project(floodway_dv(), "EPSG:4326", threads = TRUE),
-        project(surcharge, "EPSG:4326", threads = TRUE),
-        project(excess_surcharge, "EPSG:4326", "near", threads = TRUE)
-      )
-      pr = c(bfe(), floodway_wse(), floodway_dv(), surcharge,
-        excess_surcharge)
-      names(pr) = c("Base Flood Elevation", "Floodway WSE",
-        "Floodway Unit Discharge", "Surcharge", "Surcharge Violation")
-      pl = project(result_lines, "EPSG:4326")
-      pm = project(model_mesh(), "EPSG:4326")
-      incProgress(0.5)
-      output$resultsmap = renderLeaflet({
-        map_raster(pr, pl, pm)
+    withProgress(message = "Rendering Results...", value = 0, {
+
+      output$evalresults = renderDataTable({
+        results_df = values(result_lines)[c("Name", "Average_Surcharge", "Class")]
+        results_df["Average_Surcharge"] = number_label(results_df[["Average_Surcharge"]], 2)
+        names(results_df) = c("Name", "Average Surcharge", "Class")
+        datatable(results_df, options = list(
+          columnDefs = list(list(visible = FALSE,
+              targets = "Class")))) |>
+          formatStyle("Average Surcharge", "Class",
+            color = styleEqual(levels(results_df$Class), c("red", NA, "red")),
+            fontWeight = styleEqual(levels(results_df$Class), c("bold", "normal", "bold")))
       })
-      incProgress(0.4)
-      output$evalresults = renderTable({
-        values(result_lines)[c("Name", "Value")]
-      }, striped = TRUE, digits = 2)
+
+      incProgress(0.2)
+
       output$surchargeabove = renderUI(
         infoBox("\U0394 BFE \U003E 1.5",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]], "cells"),
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]], "elements"),
           icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
           color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
@@ -194,7 +189,7 @@ server = function(input, output, session) {
       )
       output$surchargebelow = renderUI(
         infoBox("\U0394 BFE \U003C -0.5",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]], "cells"),
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]], "elements"),
           color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "red", "aqua"),
           icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
@@ -203,16 +198,30 @@ server = function(input, output, session) {
       )
       output$surchargenearbelow = renderUI(
         infoBox("-0.5 \U2264 \U0394 BFE \U003C 0",
-          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]], "cells"),
+          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]], "elements"),
           icon = icon(ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "warning-sign" , "ok"), lib = "glyphicon"),
           color = ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "yellow", "aqua"),
           width = 12L)
       )
+
+      incProgress(0.1)
+
+      results_map(map_results(surcharge, result_lines, model_mesh(),
+        bfe(), floodway_wse(), floodway_dv()))
+
+      incProgress(0.7)
+
     })
   }) |>
     bindEvent(input$compute)
+
+  output$resultsmap = renderLeaflet({
+    showNotification("Rendering map, this may take a while...")
+    results_map()
+  })
+
 
 }
 
