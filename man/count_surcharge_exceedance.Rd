@@ -4,11 +4,15 @@
 \alias{count_surcharge_exceedance}
 \title{Count Cells By Surcharge Exceedance}
 \usage{
-count_surcharge_exceedance(raster)
+count_surcharge_exceedance(classes)
+}
+\arguments{
+\item{classes}{A vector of surcharge classes.}
 }
 \value{
 A named vector.
 }
 \description{
-Count the number of raster cells that exceed FEMA guidance.
+Count the number of model elements that exceed FEMA guidance on
+allowable surcharge.
 }

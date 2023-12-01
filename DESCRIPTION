@@ -10,8 +10,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
-    leaflet,
+    DT,
+    leaflet (>= 2.2.1),
     shiny,
     shinydashboard,
-    terra,
+    terra (>= 1.7-55),
     utf8
