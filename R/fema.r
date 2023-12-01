@@ -31,7 +31,6 @@ evaluate_profiles = function(bfe, floodway_wse, floodway_dv, profiles,
 
   keep_nms = c(intersect(names(result), names(profiles)), "sum_Surcharge",
     "sum_Unit_Discharge", "Average_Surcharge")
-
   values(result) = values(result)[keep_nms]
 
   cut_values = c(-Inf, 0, 1, Inf)
@@ -62,16 +61,16 @@ evaluate_profiles = function(bfe, floodway_wse, floodway_dv, profiles,
 calculate_surcharge = function(bfe, floodway_wse, model_elements) {
 
   surcharge = calculate_raster_difference(floodway_wse, bfe)
+  cells = extract_cells_by_shape(surcharge, model_elements, method = "centroid")
+  names(cells) = replace(names(cells), names(cells) == "Value", "Surcharge")
 
-  cut_values = c(-Inf, -0.51, 0, 1.5, Inf)
+  cut_values = c(-Inf, -0.51, -0.01, 1.5, Inf)
   cut_labels = utf8_normalize(c("\U0394 BFE \U003C -0.5",
       "-0.5 \U2264 \U0394 BFE \U003C 0",
       "0 \U2264 \U0394 BFE \U003C 1.5",
       "\U0394 BFE \U003E 1.5"))
   cut_colors = c("red", "yellow", "green", "red")
 
-  cells = extract_cells_by_shape(surcharge, model_elements, method = "centroid")
-  names(cells) = replace(names(cells), names(cells) == "Value", "Surcharge")
   values(cells)["Class"] = cut(round(values(cells)[["Surcharge"]], 1),
     cut_values, cut_labels)
   values(cells)["color"] = cut(round(values(cells)[["Surcharge"]], 1),
@@ -101,22 +100,19 @@ calculate_unit_discharge = function(floodway_dv, model_elements) {
 
 #' Count Cells By Surcharge Exceedance
 #'
-#' Count the number of raster cells that exceed FEMA guidance.
+#' Count the number of model elements that exceed FEMA guidance on
+#' allowable surcharge.
 #'
-#' @inheritParams calculate_surcharge
+#' @param classes A vector of surcharge classes.
 #' @return A named vector.
 #'
-#' @importFrom terra freq
 #' @importFrom utf8 utf8_normalize
 #' @export
-count_surcharge_exceedance = function(raster) {
+count_surcharge_exceedance = function(classes) {
   keep_nms = utf8_normalize(c("\U0394 BFE \U003C -0.5",
       "-0.5 \U2264 \U0394 BFE \U003C 0",
       "\U0394 BFE \U003E 1.5"))
-  fq = freq(raster, bylayer = FALSE)
-  res = fq$count
-  # terra is doing something here, need to renormalize utf8
-  names(res) = utf8_normalize(fq$value)
-  res[setdiff(keep_nms, names(res))] = 0
-  res[keep_nms]
+  fq = table(classes)
+  fq[setdiff(keep_nms, names(fq))] = 0
+  fq[keep_nms]
 }
