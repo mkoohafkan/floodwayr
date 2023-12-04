@@ -37,6 +37,7 @@ load_shapefile = function(paths) {
   load_shape_into_memory(shp_name)
 }
 
+
 #' @importFrom shiny fixedRow verticalLayout fileInput actionButton tabPanel
 #'   column icon tabsetPanel tableOutput uiOutput div hr
 #' @importFrom shinydashboard dashboardPage dashboardHeader
@@ -255,6 +256,7 @@ server = function(input, output, session) {
   observe(stopApp()) |>
     bindEvent(input$quit)
 }
+
 
 #' Run App
 #'
