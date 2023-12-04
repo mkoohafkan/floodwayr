@@ -68,10 +68,6 @@ ui = function() {
       ),
       hr(),
       div(
-        fileInput("calcextent", "Analysis Extent (optional)",
-          multiple = FALSE, accept = "image/*")
-      ),
-      div(
         column(6L,
           actionButton("compute", "Compute",
             icon = icon("flash", lib = "glyphicon"))
@@ -105,7 +101,7 @@ ui = function() {
 
 #' @importFrom shiny reactiveVal observe bindCache bindEvent
 #'   withProgress incProgress outputOptions renderUI renderTable
-#'   showNotification
+#'   showNotification req stopApp
 #' @importFrom shinydashboard infoBox
 #' @importFrom leaflet renderLeaflet
 #' @importFrom terra `coltab<-` classify project
@@ -129,30 +125,60 @@ server = function(input, output, session) {
   observe({
     # load input data
     withProgress(message = "Processing Inputs...", value = 0, {
-      bfe(
-        load_raster_into_memory(input$bfe$datapath,
-          input$calcextent$datapath)
+      tryCatch(
+        eval_lines(load_shapefile(input$evaluation$datapath)),
+        error = function(e) {
+          showNotification(paste("Could not load evaluation lines.",
+              "Did you upload all shapefile components?",
+              "(.shp, .prj, .shx, .dbf)"),
+            type = "error")
+        }
+      )
+      tryCatch(
+        model_mesh(load_shapefile(input$mesh$datapath)),
+        error = function(e) {
+          showNotification(paste("Could not load model mesh.",
+              "Did you upload all shapefile components?",
+              "(.shp, .prj, .shx, .dbf)"),
+            type = "error")
+
+        }
       )
       incProgress(0.25)
-      floodway_wse(
-        load_raster_into_memory(input$floodwaywse$datapath,
-          input$calcextent$datapath)
+      tryCatch(
+        bfe(load_raster_into_memory(input$bfe$datapath,
+            req(model_mesh()))),
+        error = function(e) {
+          showNotification("Could not load BFE raster.",
+            type = "error")
+        }
       )
       incProgress(0.25)
-      floodway_dv(
-        load_raster_into_memory(input$floodwaydv$datapath,
-          input$calcextent$datapath)
+      tryCatch(
+        floodway_wse(load_raster_into_memory(input$floodwaywse$datapath,
+            req(model_mesh()))),
+        error = function(e) {
+          showNotification("Could not load floodway WSE raster.",
+            type = "error")
+        }
       )
       incProgress(0.25)
-      eval_lines(load_shapefile(input$evaluation$datapath))
-      model_mesh(load_shapefile(input$mesh$datapath))
+      tryCatch(
+        floodway_dv(load_raster_into_memory(input$floodwaydv$datapath,
+            req(model_mesh()))),
+        error = function(e) {
+          showNotification("Could not load floodway depth x velocity raster.",
+            type = "error")
+        }
+      )
       incProgress(0.25)
     })
 
     # calculate outputs
     withProgress(message = "Calculating...", value = 0, {
       # surcharge
-      surcharge = calculate_surcharge(bfe(), floodway_wse(), model_mesh())
+      surcharge = calculate_surcharge(req(bfe()), req(floodway_wse()),
+        req(model_mesh()))
       excess_counts = count_surcharge_exceedance(surcharge[["Class"]])
 
       incProgress(0.5)
@@ -161,6 +187,7 @@ server = function(input, output, session) {
         floodway_dv(), eval_lines(), model_mesh())
       incProgress(0.5)
     })
+
     # mapping
     withProgress(message = "Rendering Results...", value = 0, {
 
@@ -209,7 +236,7 @@ server = function(input, output, session) {
       incProgress(0.1)
 
       results_map(map_results(surcharge, result_lines, model_mesh(),
-        bfe(), floodway_wse(), floodway_dv()))
+          bfe(), floodway_wse(), floodway_dv()))
 
       incProgress(0.7)
 
@@ -218,11 +245,15 @@ server = function(input, output, session) {
     bindEvent(input$compute)
 
   output$resultsmap = renderLeaflet({
-    showNotification("Rendering map, this may take a while...")
+    showNotification("Rendering map, this may take a while...",
+      duration = NULL, type = "message")
     results_map()
-  })
+  }) |>
+    bindEvent(results_map(), ignoreNULL = TRUE, ignoreInit = TRUE)
 
 
+  observe(stopApp()) |>
+    bindEvent(input$quit)
 }
 
 #' Run App
