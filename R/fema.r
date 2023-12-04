@@ -37,12 +37,9 @@ evaluate_profiles = function(bfe, floodway_wse, floodway_dv, profiles,
   cut_labels = utf8_normalize(c("\U0394 BFE \U003C 0",
       "0 \U2264 \U0394 BFE \U003C 1",
       "\U0394 BFE \U003E 1"))
-  cut_colors = c("red", "green", "red")
 
   values(result)["Class"] = cut(round(values(result)[["Average_Surcharge"]], 2),
     cut_values, cut_labels)
-  values(result)["color"] = cut(round(values(result)[["Average_Surcharge"]], 2),
-    cut_values, cut_colors)
 
   result
 }
@@ -69,12 +66,10 @@ calculate_surcharge = function(bfe, floodway_wse, model_elements) {
       "-0.5 \U2264 \U0394 BFE \U003C 0",
       "0 \U2264 \U0394 BFE \U003C 1.5",
       "\U0394 BFE \U003E 1.5"))
-  cut_colors = c("red", "yellow", "green", "red")
 
   values(cells)["Class"] = cut(round(values(cells)[["Surcharge"]], 1),
     cut_values, cut_labels)
-  values(cells)["color"] = cut(round(values(cells)[["Surcharge"]], 1),
-    cut_values, cut_colors)
+
   cells
 }
 
