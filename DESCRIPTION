@@ -1,11 +1,11 @@
 Package: floodwayr
-Title: What the Package Does (One Line, Title Case)
+Title: Floodway Evaluation Tools
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
+    person("Michael", "Koohafkan", , "michael.c.koohafkan@usace.army.mil", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: MIT + file LICENSE
+Description: A tool for evaluating Floodway definitions.
+License: CC0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
