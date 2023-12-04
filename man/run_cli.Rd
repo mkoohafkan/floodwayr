@@ -4,7 +4,7 @@
 \alias{run_cli}
 \title{Run CLI}
 \usage{
-run_cli(bfe, floodway_wse, floodway_dv, profiles, model_mesh, map = FALSE)
+run_cli(bfe, floodway_wse, floodway_dv, profiles, model_elements, map = FALSE)
 }
 \arguments{
 \item{bfe}{Base Flood Elevation \code{SpatRaster}.}
@@ -14,6 +14,8 @@ run_cli(bfe, floodway_wse, floodway_dv, profiles, model_mesh, map = FALSE)
 \item{floodway_dv}{Floodway depth-velocity \code{SpatRaster}.}
 
 \item{profiles}{Evaluation profiles \code{SpatVector}.}
+
+\item{model_elements}{Model elements \code{SpatVector}.}
 
 \item{map}{If \code{TRUE}, render an interactive map.}
 }

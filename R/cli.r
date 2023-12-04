@@ -9,7 +9,7 @@
 #' @importFrom shiny shinyApp shinyOptions
 #' @export
 run_cli = function(bfe, floodway_wse, floodway_dv,
-  profiles, model_mesh, map = FALSE) {
+  profiles, model_elements, map = FALSE) {
 
   profiles = load_shape_into_memory(profiles)
   model_elements = load_shape_into_memory(model_elements)
