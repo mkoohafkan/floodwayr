@@ -37,28 +37,27 @@ load_shapefile = function(paths) {
   load_shape_into_memory(shp_name)
 }
 
+
 #' @importFrom shiny fixedRow verticalLayout fileInput actionButton tabPanel
-#'   column icon tabsetPanel tableOutput uiOutput div hr
-#' @importFrom shinydashboard dashboardPage dashboardHeader
+#'   column icon tabsetPanel tableOutput uiOutput div hr downloadButton
+#' @importFrom shinydashboard dashboardPage dashboardHeader menuItem
 #'   dashboardSidebar dashboardBody box
 #' @importFrom leaflet leafletOutput
+#' @importFrom DT dataTableOutput
 #' @keywords internal
 ui = function() {
   dashboardPage(
     dashboardHeader(title = "Floodway Evaluation Tool"),
     dashboardSidebar(
+      tags$style(".skin-blue .sidebar .shiny-download-link { color: #444; }"),
+      #tags$style('.info-box {min-height: 60;} .info-box-icon {height: 60px; line-height: 60px;} .info-box-content {padding-top: 0px; padding-bottom: 0px;}'),
       div(
         fileInput("bfe", "Base Flood Elevation", multiple = FALSE,
           accept = "image/*"),
-        fileInput("calcextent", "Analysis Extent (optional)",
-          multiple = FALSE, accept = "image/*")
-      ),
-      hr(),
-      div(
         fileInput("floodwaywse", "Floodway WSE", multiple = FALSE,
           accept = "image/*"),
         fileInput("floodwaydv",
-          "Floodway Unit Discharge (Depth x Velocity)",
+          "Floodway Depth x Velocity",
           multiple = FALSE, accept = "image/*")
       ),
       hr(),
@@ -70,25 +69,27 @@ ui = function() {
           multiple = TRUE, accept = c(".shp", ".dbf", ".sbn", ".sbx",
             ".shx", ".prj", ".cpg"))
       ),
-      div(
-        column(6L,
-          actionButton("compute", "Compute",
-            icon = icon("flash", lib = "glyphicon"))
-        ),
-        column(6L,
-          actionButton("quit", "Quit",
-            icon = icon("off", lib = "glyphicon"))
-        )
+      hr(),
+      column(12L,
+        actionButton("compute", "Compute",
+          icon = icon("flash", lib = "glyphicon"),
+          style = "width:90%"),
+        downloadButton("export", "Export",
+          style = "width:100%"),
+        actionButton("quit", "Quit",
+          icon = icon("off", lib = "glyphicon"),
+          style = "width:90%",
+          class = "btn btn-warning")
       )
     ),
     dashboardBody(
       box(id = "outputbox",
-        column(9L,
+        column(8L,
           leafletOutput("resultsmap", height = "85vh")
         ),
-        column(3L,
+        column(4L,
           verticalLayout(
-            tableOutput("evalresults"),
+            dataTableOutput("evalresults"),
             uiOutput("surchargeabove"),
             uiOutput("surchargebelow"),
             uiOutput("surchargenearbelow")
@@ -102,15 +103,14 @@ ui = function() {
 }
 
 
-
-
-
 #' @importFrom shiny reactiveVal observe bindCache bindEvent
-#' withProgress incProgress outputOptions renderUI renderTable
+#'   withProgress incProgress outputOptions renderUI renderTable
+#'   showNotification req stopApp
 #' @importFrom shinydashboard infoBox
 #' @importFrom leaflet renderLeaflet
 #' @importFrom terra `coltab<-` classify project
 #' @importFrom utf8 utf8_normalize
+#' @importFrom DT renderDataTable datatable formatStyle styleEqual
 server = function(input, output, session) {
   # inputs
   bfe = reactiveVal(NULL)
@@ -120,101 +120,166 @@ server = function(input, output, session) {
   model_mesh = reactiveVal(NULL)
 
   # outputs
-  surcharge = reactiveVal(NULL)
-  excess_surcharge = reactiveVal(NULL)
-  floodway_dv_extract = reactiveVal(NULL)
-  eval_results = reactiveVal(NULL)
+  surcharge_poly = reactiveVal(NULL)
+  lines_poly = reactiveVal(NULL)
+  results_map = reactiveVal(NULL)
 
   observe({
     # load input data
     withProgress(message = "Processing Inputs...", value = 0, {
-      bfe(
-        load_raster_into_memory(input$bfe$datapath,
-          input$calcextent$datapath)
+      tryCatch(
+        eval_lines(load_shapefile(input$evaluation$datapath)),
+        error = function(e) {
+          showNotification(paste("Could not load evaluation lines.",
+              "Did you upload all shapefile components?",
+              "(.shp, .prj, .shx, .dbf)"),
+            type = "error")
+        }
+      )
+      tryCatch(
+        model_mesh(load_shapefile(input$mesh$datapath)),
+        error = function(e) {
+          showNotification(paste("Could not load model mesh.",
+              "Did you upload all shapefile components?",
+              "(.shp, .prj, .shx, .dbf)"),
+            type = "error")
+
+        }
       )
       incProgress(0.25)
-      floodway_wse(
-        load_raster_into_memory(input$floodwaywse$datapath,
-          input$calcextent$datapath)
+      tryCatch(
+        bfe(load_raster_into_memory(input$bfe$datapath,
+            req(model_mesh()))),
+        error = function(e) {
+          showNotification("Could not load BFE raster.",
+            type = "error")
+        }
       )
       incProgress(0.25)
-      floodway_dv(
-        load_raster_into_memory(input$floodwaydv$datapath,
-          input$calcextent$datapath)
+      tryCatch(
+        floodway_wse(load_raster_into_memory(input$floodwaywse$datapath,
+            req(model_mesh()))),
+        error = function(e) {
+          showNotification("Could not load floodway WSE raster.",
+            type = "error")
+        }
       )
       incProgress(0.25)
-      eval_lines(load_shapefile(input$evaluation$datapath))
-      model_mesh(load_shapefile(input$mesh$datapath))
+      tryCatch(
+        floodway_dv(load_raster_into_memory(input$floodwaydv$datapath,
+            req(model_mesh()))),
+        error = function(e) {
+          showNotification("Could not load floodway depth x velocity raster.",
+            type = "error")
+        }
+      )
       incProgress(0.25)
     })
 
-    # calculuate outputs
+    # calculate outputs
     withProgress(message = "Calculating...", value = 0, {
+
       # surcharge
-      surcharge = calculate_raster_difference(floodway_wse(), bfe())
-      excess_surcharge = classify_surcharge(bfe(), floodway_wse())
-      excess_counts = count_surcharge_exceedance(excess_surcharge)
-      incProgress(0.25)
+      surcharge = calculate_surcharge(req(bfe()), req(floodway_wse()),
+        req(model_mesh()))
+      excess_counts = count_surcharge_exceedance(surcharge[["Class"]])
+
+      incProgress(0.5)
 
       result_lines = evaluate_profiles(bfe(), floodway_wse(),
-        floodway_dv(), eval_lines())
-      incProgress(0.75)
-    })
-    # mapping
-    withProgress(message = "Mapping Results...", value = 0, {
-      pr = c(
-        project(bfe(), "EPSG:4326", threads = TRUE),
-        project(floodway_wse(), "EPSG:4326", threads = TRUE),
-        project(floodway_dv(), "EPSG:4326", threads = TRUE),
-        project(surcharge, "EPSG:4326", threads = TRUE),
-        project(excess_surcharge, "EPSG:4326", "near", threads = TRUE)
-      )
-      pr = c(bfe(), floodway_wse(), floodway_dv(), surcharge,
-        excess_surcharge)
-      names(pr) = c("Base Flood Elevation", "Floodway WSE",
-        "Floodway Unit Discharge", "Surcharge", "Surcharge Violation")
-      pl = project(result_lines, "EPSG:4326")
-      pm = project(model_mesh(), "EPSG:4326")
+        floodway_dv(), eval_lines(), model_mesh())
       incProgress(0.5)
-      output$resultsmap = renderLeaflet({
-        map_raster(pr, pl, pm)
+    })
+
+    # mapping
+    withProgress(message = "Rendering Results...", value = 0, {
+
+      output$evalresults = renderDataTable({
+        results_df = values(result_lines)[c("Name", "Average_Surcharge", "Class")]
+        results_df["Average_Surcharge"] = number_label(results_df[["Average_Surcharge"]], 2)
+        names(results_df) = c("Name", "Average Surcharge", "Class")
+        datatable(results_df, options = list(
+          columnDefs = list(list(visible = FALSE,
+              targets = "Class")))) |>
+          formatStyle("Average Surcharge", "Class",
+            color = styleEqual(levels(results_df$Class), c("red", NA, "red")),
+            fontWeight = styleEqual(levels(results_df$Class),
+              c("bold", "normal", "bold")))
       })
-      incProgress(0.4)
-      output$evalresults = renderTable({
-        values(result_lines)[c("Name", "Value")]
-      }, striped = TRUE, digits = 2)
+
+      incProgress(0.2)
+
       output$surchargeabove = renderUI(
         infoBox("\U0394 BFE \U003E 1.5",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]], "cells"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]],
+            "elements"),
+          icon = icon(ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
-          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
+          color = ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "red", "aqua"),
-          width = 12L)
+          width = NULL)
       )
       output$surchargebelow = renderUI(
         infoBox("\U0394 BFE \U003C -0.5",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]], "cells"),
-          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]],
+            "elements"),
+          color = ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "red", "aqua"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
+          icon = icon(ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
-          width = 12L)
+          width = NULL)
       )
       output$surchargenearbelow = renderUI(
         infoBox("-0.5 \U2264 \U0394 BFE \U003C 0",
-          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]], "cells"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
+          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]],
+            "elements"),
+          icon = icon(ifelse(
+            excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "warning-sign" , "ok"), lib = "glyphicon"),
-          color = ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
+          color = ifelse(
+            excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "yellow", "aqua"),
-          width = 12L)
+          width = NULL)
       )
+
+      incProgress(0.1)
+
+      surcharge_poly(surcharge)
+      lines_poly(result_lines)
+      results_map(map_results(surcharge_poly(), lines_poly(), model_mesh(),
+          bfe(), floodway_wse(), floodway_dv()))
+
+      incProgress(0.7)
+
     })
   }) |>
     bindEvent(input$compute)
 
+  output$resultsmap = renderLeaflet({
+    showNotification("Rendering map, this may take a while...",
+      duration = NULL, type = "message")
+    results_map()
+  }) |>
+    bindEvent(results_map(), ignoreNULL = TRUE, ignoreInit = TRUE)
+
+  output$export = downloadHandler(
+    filename = function() {
+      sprintf("floodwayr%s.zip", format(Sys.time(), "%Y%m%d%H%M%S"))
+    },
+    content = function(file) {
+      export_results(req(surcharge_poly()), req(lines_poly()),
+        zipfile = file)
+    }
+  )
+
+  observe(stopApp()) |>
+    bindEvent(input$quit)
 }
+
 
 #' Run App
 #'

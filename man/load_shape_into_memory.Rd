@@ -7,7 +7,7 @@
 load_shape_into_memory(shape)
 }
 \arguments{
-\item{shape}{A file path to a vector.}
+\item{shape}{A \code{SpatVector} object or file path to a vector layer.}
 }
 \value{
 A \code{SpatVector} object.
