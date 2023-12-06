@@ -23,6 +23,7 @@ number_label = function(x, digits = 0) {
 #' @inheritParams evaluate_profiles
 #' @return A `leaflet` object.
 #'
+#' @importFrom sf st_as_sf
 #' @importFrom stats complete.cases
 #' @importFrom terra extract project crs
 #' @importFrom leaflet leaflet addPolygons addPolylines addLegend
@@ -44,10 +45,10 @@ map_results = function(surcharge, evaluation_lines, model_elements,
   sur = surcharge[!is.na(values(surcharge)["Surcharge"])]
 
   # project for mapping
-  inputs = project(inputs, crs("EPSG:4326"))
-  sur = project(sur, crs("EPSG:4326"))
-  elem = project(model_elements, crs("EPSG:4326"))
-  eval_lines = project(evaluation_lines, crs("EPSG:4326"))
+  inputs = st_as_sf(project(inputs, crs("EPSG:4326")))
+  sur = st_as_sf(project(sur, crs("EPSG:4326")))
+  elem = st_as_sf(project(model_elements, crs("EPSG:4326")))
+  eval_lines = st_as_sf(project(evaluation_lines, crs("EPSG:4326")))
 
   # color palettes
   wse_pal = colorNumeric("Blues",
