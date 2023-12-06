@@ -49,7 +49,7 @@ load_shape_into_memory = function(shape) {
 #' @return A `SpatExtent` object.
 #'
 #' @importFrom terra ext
-#' @export
+#' @keywords internal
 get_raster_extent = function(raster) {
   if (!inherits(raster, c("SpatRaster", "SpatVector"))) {
     raster = load_raster_into_memory(raster)

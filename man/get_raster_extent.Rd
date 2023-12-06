@@ -15,3 +15,4 @@ A \code{SpatExtent} object.
 \description{
 Get the extent from a \code{SpatRaster} object.
 }
+\keyword{internal}
