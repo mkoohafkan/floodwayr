@@ -39,8 +39,8 @@ load_shapefile = function(paths) {
 
 
 #' @importFrom shiny fixedRow verticalLayout fileInput actionButton tabPanel
-#'   column icon tabsetPanel tableOutput uiOutput div hr
-#' @importFrom shinydashboard dashboardPage dashboardHeader
+#'   column icon tabsetPanel tableOutput uiOutput div hr downloadButton
+#' @importFrom shinydashboard dashboardPage dashboardHeader menuItem
 #'   dashboardSidebar dashboardBody box
 #' @importFrom leaflet leafletOutput
 #' @importFrom DT dataTableOutput
@@ -68,15 +68,13 @@ ui = function() {
             ".shx", ".prj", ".cpg"))
       ),
       hr(),
-      div(
-        column(6L,
-          actionButton("compute", "Compute",
-            icon = icon("flash", lib = "glyphicon"))
-        ),
-        column(6L,
-          actionButton("quit", "Quit",
-            icon = icon("off", lib = "glyphicon"))
-        )
+      column(12L,
+        actionButton("compute", "Compute",
+          icon = icon("flash", lib = "glyphicon")),
+        downloadButton("export", "Export"),
+        actionButton("quit", "Quit",
+          icon = icon("off", lib = "glyphicon"),
+          class = "btn btn-warning")
       )
     ),
     dashboardBody(
@@ -117,10 +115,8 @@ server = function(input, output, session) {
   model_mesh = reactiveVal(NULL)
 
   # outputs
-  surcharge = reactiveVal(NULL)
-  excess_surcharge = reactiveVal(NULL)
-  floodway_dv_extract = reactiveVal(NULL)
-  eval_results = reactiveVal(NULL)
+  surcharge_poly = reactiveVal(NULL)
+  lines_poly = reactiveVal(NULL)
   results_map = reactiveVal(NULL)
 
   observe({
@@ -177,6 +173,7 @@ server = function(input, output, session) {
 
     # calculate outputs
     withProgress(message = "Calculating...", value = 0, {
+
       # surcharge
       surcharge = calculate_surcharge(req(bfe()), req(floodway_wse()),
         req(model_mesh()))
@@ -201,42 +198,54 @@ server = function(input, output, session) {
               targets = "Class")))) |>
           formatStyle("Average Surcharge", "Class",
             color = styleEqual(levels(results_df$Class), c("red", NA, "red")),
-            fontWeight = styleEqual(levels(results_df$Class), c("bold", "normal", "bold")))
+            fontWeight = styleEqual(levels(results_df$Class),
+              c("bold", "normal", "bold")))
       })
 
       incProgress(0.2)
 
       output$surchargeabove = renderUI(
         infoBox("\U0394 BFE \U003E 1.5",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]], "elements"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]],
+            "elements"),
+          icon = icon(ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
-          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
+          color = ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "red", "aqua"),
           width = 12L)
       )
       output$surchargebelow = renderUI(
         infoBox("\U0394 BFE \U003C -0.5",
-          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]], "elements"),
-          color = ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
+          paste(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]],
+            "elements"),
+          color = ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "red", "aqua"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
+          icon = icon(ifelse(
+            excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
           width = 12L)
       )
       output$surchargenearbelow = renderUI(
         infoBox("-0.5 \U2264 \U0394 BFE \U003C 0",
-          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]], "elements"),
-          icon = icon(ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
+          paste(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]],
+            "elements"),
+          icon = icon(ifelse(
+            excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "warning-sign" , "ok"), lib = "glyphicon"),
-          color = ifelse(excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
+          color = ifelse(
+            excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "yellow", "aqua"),
           width = 12L)
       )
 
       incProgress(0.1)
-
-      results_map(map_results(surcharge, result_lines, model_mesh(),
+      
+      surcharge_poly(surcharge)
+      lines_poly(result_lines)
+      results_map(map_results(surcharge_poly(), lines_poly(), model_mesh(),
           bfe(), floodway_wse(), floodway_dv()))
 
       incProgress(0.7)
@@ -252,6 +261,15 @@ server = function(input, output, session) {
   }) |>
     bindEvent(results_map(), ignoreNULL = TRUE, ignoreInit = TRUE)
 
+  output$export = downloadHandler(
+    filename = function() {
+      sprintf("floodwayr%s.zip", format(Sys.time(), "%Y%m%d%H%M%S"))
+    },
+    content = function(file) {
+      export_results(req(surcharge_poly()), req(lines_poly()),
+        zipfile = file)
+    }
+  )
 
   observe(stopApp()) |>
     bindEvent(input$quit)
