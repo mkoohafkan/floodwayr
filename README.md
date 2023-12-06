@@ -1,6 +1,6 @@
-# Floodwayr
+# {floodwayr}
 
-Floodway Evaluation Tool.
+An R package and Shiny app for evaluating floodway definitions.
 
 ## Demo
 
