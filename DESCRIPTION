@@ -11,8 +11,10 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
     DT,
+    sf,
     leaflet (>= 2.2.1),
     shiny,
     shinydashboard,
     terra (>= 1.7-55),
-    utf8
+    utf8,
+    zip
