@@ -49,6 +49,8 @@ ui = function() {
   dashboardPage(
     dashboardHeader(title = "Floodway Evaluation Tool"),
     dashboardSidebar(
+      tags$style(".skin-blue .sidebar .shiny-download-link { color: #444; }"),
+      #tags$style('.info-box {min-height: 60;} .info-box-icon {height: 60px; line-height: 60px;} .info-box-content {padding-top: 0px; padding-bottom: 0px;}'),
       div(
         fileInput("bfe", "Base Flood Elevation", multiple = FALSE,
           accept = "image/*"),
@@ -70,19 +72,22 @@ ui = function() {
       hr(),
       column(12L,
         actionButton("compute", "Compute",
-          icon = icon("flash", lib = "glyphicon")),
-        downloadButton("export", "Export"),
+          icon = icon("flash", lib = "glyphicon"),
+          style = "width:90%"),
+        downloadButton("export", "Export",
+          style = "width:100%"),
         actionButton("quit", "Quit",
           icon = icon("off", lib = "glyphicon"),
+          style = "width:90%",
           class = "btn btn-warning")
       )
     ),
     dashboardBody(
       box(id = "outputbox",
-        column(9L,
+        column(8L,
           leafletOutput("resultsmap", height = "85vh")
         ),
-        column(3L,
+        column(4L,
           verticalLayout(
             dataTableOutput("evalresults"),
             uiOutput("surchargeabove"),
@@ -214,7 +219,7 @@ server = function(input, output, session) {
           color = ifelse(
             excess_counts[[utf8_normalize("\U0394 BFE \U003E 1.5")]] > 0,
             "red", "aqua"),
-          width = 12L)
+          width = NULL)
       )
       output$surchargebelow = renderUI(
         infoBox("\U0394 BFE \U003C -0.5",
@@ -226,7 +231,7 @@ server = function(input, output, session) {
           icon = icon(ifelse(
             excess_counts[[utf8_normalize("\U0394 BFE \U003C -0.5")]] > 0,
             "remove", "ok"), lib = "glyphicon"),
-          width = 12L)
+          width = NULL)
       )
       output$surchargenearbelow = renderUI(
         infoBox("-0.5 \U2264 \U0394 BFE \U003C 0",
@@ -238,11 +243,11 @@ server = function(input, output, session) {
           color = ifelse(
             excess_counts[[utf8_normalize("-0.5 \U2264 \U0394 BFE \U003C 0")]] > 0,
             "yellow", "aqua"),
-          width = 12L)
+          width = NULL)
       )
 
       incProgress(0.1)
-      
+
       surcharge_poly(surcharge)
       lines_poly(result_lines)
       results_map(map_results(surcharge_poly(), lines_poly(), model_mesh(),
