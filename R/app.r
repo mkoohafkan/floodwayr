@@ -40,6 +40,7 @@ load_shapefile = function(paths) {
 
 #' @importFrom shiny fixedRow verticalLayout fileInput actionButton tabPanel
 #'   column icon tabsetPanel tableOutput uiOutput div hr downloadButton tags
+#'   downloadHandler
 #' @importFrom shinydashboard dashboardPage dashboardHeader menuItem
 #'   dashboardSidebar dashboardBody box
 #' @importFrom leaflet leafletOutput
@@ -50,7 +51,6 @@ ui = function() {
     dashboardHeader(title = "Floodway Evaluation Tool"),
     dashboardSidebar(
       tags$style(".skin-blue .sidebar .shiny-download-link { color: #444; }"),
-      #tags$style('.info-box {min-height: 60;} .info-box-icon {height: 60px; line-height: 60px;} .info-box-content {padding-top: 0px; padding-bottom: 0px;}'),
       div(
         fileInput("bfe", "Base Flood Elevation", multiple = FALSE,
           accept = "image/*"),
