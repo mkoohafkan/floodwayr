@@ -5,7 +5,7 @@ An R package and Shiny app for evaluating floodway definitions.
 
 ## Installation
 
-1. Install R (https://cran.r-project.org/)
+1. Install R. (https://cran.r-project.org/)
 2. Install the `{remotes}` package.
 ```r
 if (!require(remotes)) {
