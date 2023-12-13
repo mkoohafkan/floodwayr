@@ -39,7 +39,7 @@ load_shapefile = function(paths) {
 
 
 #' @importFrom shiny fixedRow verticalLayout fileInput actionButton tabPanel
-#'   column icon tabsetPanel tableOutput uiOutput div hr downloadButton
+#'   column icon tabsetPanel tableOutput uiOutput div hr downloadButton tags
 #' @importFrom shinydashboard dashboardPage dashboardHeader menuItem
 #'   dashboardSidebar dashboardBody box
 #' @importFrom leaflet leafletOutput

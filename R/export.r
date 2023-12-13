@@ -9,6 +9,7 @@
 #'
 #' @importFrom terra writeVector
 #' @importFrom zip zip
+#' @importFrom utils write.table
 #' @export
 export_results = function(surcharge, evaluation_lines, zipfile = NULL) {
 
